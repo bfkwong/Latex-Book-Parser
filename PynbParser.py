@@ -92,7 +92,11 @@ def parseSection(string):
 
     preRE = parseSection(res["pre"])
     postRE = parseSection(res["post"])
-    body = "\\chapter{%s}\\label{ch}" % (res["title"])
+
+    titleSplit = res["title"].split(" ")
+    chLabel = titleSplit[0]
+    chTag = " ".join(titleSplit[1:])
+    body = "\\chapter{%s}\\label{%s}" % (chTag, chLabel)
 
     return preRE + body + postRE
 
@@ -108,7 +112,11 @@ def parseSubSection(string):
 
     preRE = parseSubSection(res["pre"])
     postRE = parseSubSection(res["post"])
-    body = "\\section{%s}\\label{ch}" % (res["title"])
+
+    titleSplit = res["title"].split(" ")
+    secLabel = titleSplit[0]
+    secTag = " ".join(titleSplit[1:])
+    body = "\\section{%s}\\label{%s}" % (secTag, secLabel)
 
     return preRE + body + postRE
 
@@ -124,7 +132,11 @@ def parseSubSubSection(string):
 
     preRE = parseSubSubSection(res["pre"])
     postRE = parseSubSubSection(res["post"])
-    body = "\\subsection{%s}\\label{ch}" % (res["title"])
+
+    titleSplit = res["title"].split(" ")
+    subsecLabel = titleSplit[0]
+    subsecTag = " ".join(titleSplit[1:])
+    body = "\\subsection{%s}\\label{%s}" % (subsecTag, subsecLabel)
 
     return preRE + body + postRE
 
