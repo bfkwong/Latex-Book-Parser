@@ -244,6 +244,8 @@ Example usage of the PynbParser would be as follows
 $ python ./PynbParser.py ./config.json
 ```
 
+To ensure everything gets rendered to Latex, make sure to run all the cells in each Markdown file so that any output and output images are in the file. 
+
 ### Config File
 
 The python file takes in one config file as input. The config file is a JSON file that is formatted as follows 
