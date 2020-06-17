@@ -1,5 +1,7 @@
 # Markdown Parser Documentation 
 
+{{TOC}}
+
 ## I. BOOK LAYOUT 
 
 ### Chapter Layout
@@ -256,11 +258,14 @@ The python file takes in one config file as input. The config file is a JSON fil
 		"/main.tex": "http link to the file", 
 		"/krantz.cls": "http link to the file", 
 	},
-	"book_directory": "./"
+	"book_directory": "./",
+	"glossary_word_csv": "./glossary.csv"
 }
 ```
 
-#### main.tex
+#### Resources
+
+##### main.tex
 The JSON file resources section must include a `main.tex` section. This is the main launching point for the latex notebook. Within `main.tex`, there must exists the string `"@@@SPLIT@@@"` that signifies where you want the compiled latex files to be put. For example. 
 
 **source main.tex**
@@ -271,9 +276,11 @@ The JSON file resources section must include a `main.tex` section. This is the m
 \usepackage{multicol}
 \usepackage{graphicx}
 \usepackage{csquotes}
+\makeindex
 
 \begin{document}
 @@@SPLIT@@@
+\printindex
 \end{document}
 ...
 ```
@@ -286,23 +293,46 @@ The JSON file resources section must include a `main.tex` section. This is the m
 \usepackage{multicol}
 \usepackage{graphicx}
 \usepackage{csquotes}
+\makeindex
 
 \begin{document}
 \include{01_Data_Ecosystem/out}
 \include{02_Categorical_Data/out}
 \include{03_Quantitative_Data/out}
 \include{05_Regression_Models/out}
+\printindex
 \end{document}
 ...
 ```
 
-#### Other Resources 
+##### Other Resources 
 
 The other resources that could be put into the config files include things like format files (`klantz.cls`) or tex files that `main.tex` will use. Just provide the name of the file and the http link to it. All resources file will be put at the surface directory of `./LatexBook`. 
 
-#### Input Source 
+#### Book Directory
 
 The config file also takes in a key called `"book_directory"`. This is the directory that the parser will go to to look for the  books. This parameter can accept either an absolute path or a relative path. 
+
+#### Glossary Word CSV
+
+This is a CSV file that contains all glossary words that you would like the parser to create an index for. In Latex, glossary words marked by `\index{pandas}`. Thus any words in the glossary CSV will be parsed to be put inside an index tag. The Format of this File should be as follows: 
+
+words| 
+---|
+Quantative Variable|
+Dataframes| 
+Jupyter| 
+Tabular Data|
+
+The CSV file would be displayed as 
+
+```
+words
+Quantative Variable
+Dataframes
+Jupyter
+Tabular Data
+```
 
 ### Output
 
