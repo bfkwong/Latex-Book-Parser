@@ -6,17 +6,18 @@ import os
 import base64
 import requests
 import mistletoe
+import pandas as pd
 from mistletoe.latex_renderer import LaTeXRenderer
 
 OUTPUT_IMG_CNT = 0
 OPERATING_PATH = ""
 
-def openPynb(filename: str) -> dict:
+def openPynb(filename):
     with open(filename, mode= "r", encoding= "utf-8") as f:
         pynbRaw = json.loads(f.read())["cells"]
     return pynbRaw
 
-def parseImage(line: str) -> str:
+def parseImage(line):
     global OPERATING_PATH
     resMatch = re.match(r"!\[(?P<title>[\s\S]*?)\]\((?P<link>[\s\S]*?)\)", line).groupdict()
     if resMatch["link"][0:4] == "http":
@@ -28,12 +29,12 @@ def parseImage(line: str) -> str:
     return "\\begin{figure}[h!]\\centering\\includegraphics[width=0.45\\paperwidth]{%s}\\end{figure}\n" \
             % ("image/" + resMatch["title"])
 
-def parseCode(code: str) -> str:
+def parseCode(code):
     if re.match(r"# SETUP", code):
         return ""
     return "\\begin{lstlisting}[language=Python]\n%s\n\\end{lstlisting}\n" % (code)
 
-def parseOutput(outputs: list) -> str:
+def parseOutput(outputs):
     global OUTPUT_IMG_CNT
     latexOutput = []
     for output in outputs:
@@ -200,7 +201,7 @@ def parseFootNoteTag(string):
     return preRE + body + postRE
 
 
-def postParser(string:str) -> str:
+def postParser(string):
     parsed = parseIncludeGraphics(string)
     parsed = parseSection(parsed)
     parsed = parseSubSection(parsed)
@@ -211,7 +212,7 @@ def postParser(string:str) -> str:
     parsed = parseFootNoteTag(parsed)
     return parsed
 
-def pynbParser(indir: str, outfile: str):
+def pynbParser(indir, outfile, indexWords):
     global OPERATING_PATH
     if not os.path.exists('./LatexBook/image'):
         os.makedirs('./LatexBook/image')
@@ -232,6 +233,8 @@ def pynbParser(indir: str, outfile: str):
                     latexRE = r'[\s\S]*\\begin{document}(?P<body>[\s\S]*)\\end{document}'
                     s = re.match(latexRE, rendered).groupdict()
                     s = postParser(s["body"])
+                    for word in indexWords: 
+                        s = s.replace(word, "\\index{" + word + "}")
                     parsedCells.append(s)
             elif cell["cell_type"] == "code":
                 res = parseCode("".join(cell["source"]))
@@ -277,12 +280,13 @@ def createLatexBook(configfilename):
     main = main.split("@@@SPLIT@@@")
 
     main_written = [main[0]]
+    indexWords = set(pd.read_csv(config["glossary_word_csv"])["words"])
 
     print("===================================")
     print("STARTING PARSER")
     print("===================================")
     for folder in listDir:
-        output = pynbParser(folder, "out.tex")
+        output = pynbParser(folder, "out.tex", indexWords)
         outputs.append([folder, output])
 
         main_written.append("\include{" + folder + "/out" + "}")
