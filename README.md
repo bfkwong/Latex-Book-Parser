@@ -1,7 +1,5 @@
 # Markdown Parser Documentation 
 
-{{TOC}}
-
 ## I. BOOK LAYOUT 
 
 ### Chapter Layout
@@ -258,7 +256,7 @@ The python file takes in one config file as input. The config file is a JSON fil
 		"/main.tex": "http link to the file", 
 		"/krantz.cls": "http link to the file", 
 	},
-	"book_directory": "./",
+	"book_directory": "TestBook",
 	"glossary_word_csv": "./glossary.csv"
 }
 ```
@@ -311,7 +309,7 @@ The other resources that could be put into the config files include things like 
 
 #### Book Directory
 
-The config file also takes in a key called `"book_directory"`. This is the directory that the parser will go to to look for the  books. This parameter can accept either an absolute path or a relative path. 
+The config file also takes in a key called `"book_directory"`. This is the directory that the parser will go to to look for the  books. This parameter accepts a relative path to the folder. Do not use `.` or `..` in your path, this is important because this directory will help create the final project structure of the LatexBook directory.
 
 #### Glossary Word CSV
 
