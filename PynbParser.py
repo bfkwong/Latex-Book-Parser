@@ -117,7 +117,7 @@ def createLatexBook(configfilename):
     if not os.path.exists('./LatexBook'):
         os.makedirs('./LatexBook')
 
-    listDir = [x for x in os.listdir() if re.match(r"\d\d_.*", x)]
+    listDir = [x for x in os.listdir(bookdir) if re.match(r"\d\d_.*", x)]
     listDir.sort()
     outputs = []
 
@@ -125,16 +125,19 @@ def createLatexBook(configfilename):
     main = main.split("@@@SPLIT@@@")
 
     main_written = [main[0]]
-    indexWords = set(pd.read_csv(config["glossary_word_csv"])["words"])
+
+    indexWords = set()
+    if "glossary_word_csv" in config:
+        indexWords = set(pd.read_csv(config["glossary_word_csv"])["words"])
 
     print("===================================")
     print("STARTING PARSER")
     print("===================================")
     for folder in listDir:
-        output = pynbParser(folder, "out.tex", indexWords)
-        outputs.append([folder, output])
+        output = pynbParser(bookdir + "/" + folder, "out.tex", indexWords)
+        outputs.append([bookdir + "/" + folder, output])
 
-        main_written.append("\include{" + folder + "/out" + "}")
+        main_written.append("\include{" + bookdir + "/" + folder + "/out" + "}")
 
     main_written.append(main[-1])
     main_written = "\n".join(main_written)

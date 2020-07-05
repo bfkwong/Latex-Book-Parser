@@ -1,0 +1,7 @@
+{
+    "resources": {
+        "krantz.cls": "https://raw.githubusercontent.com/bfkwong/data/master/krantz.cls",
+        "main.tex": "https://raw.githubusercontent.com/bfkwong/data/master/main.tex"
+    },
+    "book_directory": "TesterBook"
+}
