@@ -1,0 +1,429 @@
+
+
+\chapter{Tabular Data}\label{Ch.1}
+
+What does data look like? For most people, the first image that comes to mind is a spreadsheet, where each row represents something being measured and each column a type of measurement. This stereotype exists for a reason; many real-world data sets can indeed be organized this way. Data that can be represented using rows and columns is called \textit{tabular data}. The rows are also called \textit{observations} or \textit{records},  while the columns are called \textit{variables} or \textit{fields}. The different terms reflect the diverse communities within data science, and their origins are summarized in the table below.
+\begin{tabular}{l l l}
+ & Rows & Columns \\
+\hline
+Statisticians & "observations" & "variables" \\
+Computer Scientists & "records" & "fields" \\
+\end{tabular}
+
+\section{Pandas DataFrames}\label{1.1}
+
+The table below is an example of a
+data set that can be represented in tabular form.
+This is a sample of user profiles in the
+San Francisco Bay Area from the online dating website
+OKCupid. In this case, each observation is an OKCupid user, and the variables include age, body type, height, and
+(relationship) status. Although a
+\verb|DataFrame| can contain values of all types, the
+values within a column are typically all of the same
+type---the age and height columns store
+numbers, while the body type and
+status columns store strings. Some values may be missing, such as body type for the first user
+and diet for the second.
+\begin{tabular}{l l l l l l l}
+age & body type & diet & ... & smokes & height & status \\
+\hline
+31 &  & mostly vegetarian & ... & no & 67 & single \\
+31 & average &  & ... & no & 66 & single \\
+43 & curvy &  & ... & trying to quit & 65 & single \\
+... & ... & ... & ... & ... & ... & ... \\
+60 & fit &  & ... & no & 57 & single \\
+\end{tabular}
+
+Within Python, tabular data is typically stored in
+a special type of object called a \verb|DataFrame|. A \verb|DataFrame| is optimized for storing tabular data; for example, it uses the fact that the values within a column are all the same type to save memory and speed up computations. Unfortunately, the \verb|DataFrame| is not built into base Python, a reminder that Python is a general-purpose programming language. To be able to work with \verb|DataFrame|s, we have to import a data science package called \verb|pandas|, which essentially does one thing---define a data structure called a \verb|DataFrame| for storing tabular data. But this data structure is so fundamental to data science that importing \verb|pandas| is the very first line of many Jupyter notebooks and Python scripts:
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+\end{lstlisting}
+
+
+
+
+This command makes \verb|pandas| objects and utilities
+available under the abbreviation \verb|pd|.
+
+
+
+\subsection{Reading From CSV}\label{1.1.1}
+
+How do we get data, which is ordinarily stored in a file on disk,
+into a \verb|pandas| \verb|DataFrame|? \verb|pandas| provides
+several utilities for reading data. For example,
+the OKCupid data in
+the table above is stored as a \textit{comma-separated values} (CSV) file on
+the web, available at the URL https://dlsun.github.io/pods/data/okcupid.csv.
+
+We can read in this file from the web using the \verb|read_csv| function in \verb|pandas|:
+
+\begin{lstlisting}[language=Python]
+data_dir = "https://dlsun.github.io/pods/data/"
+df_okcupid = pd.read_csv(data_dir + "okcupid.csv")
+df_okcupid.head()
+\end{lstlisting}
+
+
+
+
+The \verb|read_csv| function is also able
+to read in a file from disk. It automatically infers
+where to look based on the file path.
+Unless the path is obviously a URL (e.g., it begins with \verb|http://|), it looks for the file
+on the local machine.
+
+
+
+Notice above how missing values are represented in a \verb|pandas| \verb|DataFrame|. Each missing value is represented by a \verb|NaN|, which is short for "not a number". As we will see, most \verb|pandas| operations simply ignore \verb|NaN| values.
+
+
+
+\subsection{Exercises}\label{1.1.2}
+
+
+\begin{enumerate}
+\item 
+Download the OKCupid data set above to your workstation and use \verb|read_csv| to read in the file from your local machine.
+
+\item 
+Read in the Framingham Heart Study data set,
+which is available at the URL \verb|https://dlsun.github.io/pods/data/framingham_long.csv|. Be sure to give the \verb|DataFrame| an
+informative variable name.
+
+\end{enumerate}
+
+
+
+
+
+
+\section{Rows and the Observational Unit}\label{1.2}
+
+Recall that the rows of a tabular data set represent observations. Whenever you encounter a new (tabular) data
+set, the first question you should ask yourself is:
+\begin{displayquote}
+"What is the observational unit?"
+\end{displayquote}
+
+In other words, what does each row of the
+\verb|DataFrame| represent? In the case of
+the OKCupid data set in the previous section, the observational unit was clearly an OKCupid user. But it is not always so obvious what the observational unit is.
+
+For example, consider the Framingham Heart Study data set, which is available at \verb|https://dlsun.github.io/pods/data/framingham_long.csv|.
+This data comes from a study of men and women in
+the town of Framingham, Massachusetts, which has enrolled
+thousands of patients since it began in 1948 and is still ongoing. The goal of the study is to identify risk factors for cardivascular disease (CVD) by following the subjects over time. The data set that we will analyze was collected on 4,434 subjects between 1956 and 1968. A description of the data set is available \verb|https://biolincc.nhlbi.nih.gov/media/teachingstudies/FHS_Teaching_Longitudinal_Data_Documentation.pdf|.
+
+You might guess that the observational unit is a subject. Let's see if that guess is correct.
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+
+data_dir = "https://dlsun.github.io/pods/data/"
+df_framingham = pd.read_csv(data_dir + "framingham_long.csv")
+df_framingham.head()
+\end{lstlisting}
+
+\small\begin{verbatim}
+   RANDID  SEX  TOTCHOL  AGE  ...  TIMESTRK  TIMECVD  TIMEDTH  TIMEHYP
+0    2448    1    195.0   39  ...      8766     6438     8766     8766
+1    2448    1    209.0   52  ...      8766     6438     8766     8766
+2    6238    2    250.0   46  ...      8766     8766     8766     8766
+3    6238    2    260.0   52  ...      8766     8766     8766     8766
+4    6238    2    237.0   58  ...      8766     8766     8766     8766
+
+[5 rows x 39 columns]
+\end{verbatim}
+
+
+
+Each \verb|RANDID| corresponds to a unique subject in the study, but each subject appears multiple times in the data set. That is because this is a longitudinal study; each subject was measured at multiple points during their lifetime. So the observational unit in the Framingham Heart Study data set is a \textit{measurement} of a subject at a point in time.
+
+If there is a variable or a set of variables in the data set that uniquely identifies the observational unit, then it is customary to make those variables the index the \verb|DataFrame|. In the Framingham data set, \verb|RANDID| and \verb|TIME| uniquely identify the observational unit, so we move these columns to the index. (Notice that we specify \verb|inplace=True| so that \verb|.set_index()| modifies the existing \verb|DataFrame| rather than returning a new one.)
+
+\begin{lstlisting}[language=Python]
+df_framingham.set_index(["RANDID", "TIME"], inplace=True)
+df_framingham.head()
+\end{lstlisting}
+
+\small\begin{verbatim}
+             SEX  TOTCHOL  AGE  SYSBP  ...  TIMESTRK  TIMECVD  TIMEDTH  TIMEHYP
+RANDID TIME                            ...                                     
+2448   0       1    195.0   39  106.0  ...      8766     6438     8766     8766
+       4628    1    209.0   52  121.0  ...      8766     6438     8766     8766
+6238   0       2    250.0   46  121.0  ...      8766     8766     8766     8766
+       2156    2    260.0   52  105.0  ...      8766     8766     8766     8766
+       4344    2    237.0   58  108.0  ...      8766     8766     8766     8766
+
+[5 rows x 37 columns]
+\end{verbatim}
+
+
+
+\subsection{Selecting Rows}\label{1.2.1}
+
+We can select an individual row from a \verb|DataFrame| using its label in the index. For example, the fourth row in the Framingham data set above has label \verb|(6238, 2156)|. The \verb|.loc| attribute of the \verb|DataFrame| is used to select a row by its label.
+
+\begin{lstlisting}[language=Python]
+row = df_framingham.loc[(6238, 2156)]
+row
+\end{lstlisting}
+
+
+
+
+We can also select a row by its position using the \verb|.iloc| attribute. Keeping in mind that the first row is actually row 0, the fourth row could also be extracted as:
+
+\begin{lstlisting}[language=Python]
+df_framingham.iloc[3]
+\end{lstlisting}
+
+
+
+
+Notice that a single row from a \verb|DataFrame| is no longer a \verb|DataFrame| but a different data structure, called a \verb|Series|.
+
+\begin{lstlisting}[language=Python]
+type(row)
+\end{lstlisting}
+
+
+
+
+We can also select multiple rows by passing a \textit{list} of labels or positions to \verb|.loc| and \verb|.iloc|, respectively.
+
+\begin{lstlisting}[language=Python]
+rows = df_framingham.loc[[(2448, 4628), (6238, 2156)]]
+rows
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=Python]
+df_framingham.iloc[[1, 3]]
+\end{lstlisting}
+
+
+
+
+Notice that when we select multiple rows, we get a \verb|DataFrame| back.
+
+\begin{lstlisting}[language=Python]
+type(rows)
+\end{lstlisting}
+
+
+
+
+So a \verb|Series| is used to store a single observation (across multiple variables), while a \verb|DataFrame| is used to store multiple observations (across multiple variables).
+
+
+
+If selecting consecutive rows, we can use Python's \verb|slice| notation. For example, the code below selects all rows from the fourth row, up to (but not including) the tenth row.
+
+\begin{lstlisting}[language=Python]
+df_framingham.iloc[3:9]
+\end{lstlisting}
+
+
+
+
+\subsection{Exercises}\label{1.2.2}
+
+
+\begin{enumerate}
+\item 
+Suppose you want to extract just the fourth row from the Framingham data set, but you want the result to be a \verb|DataFrame| instead of a \verb|Series|. In other words, you want a \verb|DataFrame| with a single row. Can you figure out how to accomplish this?
+
+\item 
+Questions 2-4 deal with the Titanic data set \verb|https://dlsun.github.io/pods/data/titanic.csv|. Read in the Titanic data set. What is the observational unit?
+
+\item 
+What column seems to be appropriate index for this data set? Do you see any problems with using this column as the index? (\textit{Hint:} Try looking up "Kelly, Mr. James" or "Green, Mr. George" in this \verb|DataFrame|.)
+
+\item 
+Regardless of your reservations in the previous question, make "name" the index of the \verb|DataFrame|. Use this to extract a \verb|DataFrame| containing information about the three members of the Widener family (Widener, Mr. George Dunton, Widener, Mr. Harry Elkins, Widener, Mrs. Eleanor). What became of them? Using a search engine, what else can you learn about them?
+
+\end{enumerate}
+
+\begin{lstlisting}[language=Python]
+
+\end{lstlisting}
+
+
+
+
+
+
+
+\section{Columns and Variables}\label{1.3}
+
+Recall that the columns of a tabular data set represent variables. They are the measurements that we make on each observation.
+
+As an example, let's consider the variables in the OKCupid data set. This data set does not have a natural index, so we use the default index (0, 1, 2, ...).
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+
+data_dir = "https://dlsun.github.io/pods/data/"
+df_okcupid = pd.read_csv(data_dir + "okcupid.csv")
+df_okcupid.head()
+\end{lstlisting}
+
+
+
+
+\subsection{Types of Variables}\label{1.3.1}
+
+There is a fundamental difference between variables like \verb|age| and \verb|height|, which can be measured on a numeric scale, and variables like \verb|religion| and \verb|orientation|, which cannot be.
+
+Variables that can be measured on a numeric scale are called \textbf{quantitative variables}. Just because a variable happens to contain numbers does not necessarily make it "quantitative". For example, in the Framingham data set, the \verb|SEX| column was coded as 1 for men and 2 for women. However, these numbers are not on any meaningful numerical scale; a woman is not "twice" a man.
+
+Variables that are not quantitative but take on a limited set of values are called \textbf{categorical variables}. For example, the variable \verb|orientation| takes on one of three possible values (gay, straight, or bisexual), so it is a categorical variable. So is the variable \verb|religion|, which takes on a larger, but still limited, set of values. We call each possible value of a categorical variable a "level". Levels are usually non-numeric.
+
+Some variables do not fit neatly into either classification. For example, the variable \verb|essay1| contains users' answers to the prompt "What I’m doing with my life". This variable is obviously not quantitative, but it is not categorical either because every user has a unique answer. In other words, this variable does not take on a limited set of values. We will group such variables into an "other" category.
+
+Every variable can be classified into one of these three \textbf{types}:
+\begin{itemize}
+\item 
+quantitative,
+
+\item 
+categorical, or
+
+\item 
+other.
+
+\end{itemize}
+
+The type of the variable often dictates how we analyze that variable, as we will see in the next two chapters.
+
+
+
+\subsection{Selecting Variables}\label{1.3.2}
+
+Suppose we want to select the \verb|age| column from the \verb|DataFrame| above. There are three ways to do this.
+
+
+
+1.  Use \verb|.loc|, specifying both the rows and columns. (The colon \verb|:| is Python shorthand for "all".)
+
+\begin{lstlisting}[language=Python]
+df_okcupid.loc[:, "age"]
+\end{lstlisting}
+
+
+
+
+2. Access the column as you would a key in a \verb|dict|.
+
+\begin{lstlisting}[language=Python]
+df_okcupid["age"]
+\end{lstlisting}
+
+
+
+
+3. Access the column as an attribute of the \verb|DataFrame|.
+
+\begin{lstlisting}[language=Python]
+df_okcupid.age
+\end{lstlisting}
+
+
+
+
+Method 3 (attribute access) is the most concise. However, it does not work if the variable name contains spaces or special characters, begins with a number, or matches an existing attribute of \verb|DataFrame|. For example, if \verb|df_okcupid| had a column called \verb|head|, \verb|df_okcupid.head| would not return the column because \verb|df_okcupid.head| is already reserved for something else.
+
+
+
+Notice that a \verb|Series| is used here to store a single variable (across multiple observations). In the previous section, we saw that a \verb|Series| can also be used to store a single observation (across multiple columns). To summarize, the \verb|Series| data structure is used to store either a single row or a single column in a tabular data set. In other words, while a \verb|DataFrame| is two-dimensional (containing both rows and columns), a \verb|Series| is one-dimensional.
+
+
+
+To select multiple columns, you would pass in a \textit{list} of variable names, instead of a single variable name. For example, to select both \verb|age| and \verb|religion|, either of the two methods below would work (and produce the same result):
+
+\begin{lstlisting}[language=Python]
+# METHOD 1
+df_okcupid.loc[:, ["age", "religion"]].head()
+
+# METHOD 2
+df_okcupid[["age", "religion"]].head()
+\end{lstlisting}
+
+
+
+
+\subsection{Type Inference and Casting}\label{1.3.3}
+
+
+
+\verb|pandas| tries to infer the type of each variable automatically. If every value in a column (except for missing values) is a number, then \verb|pandas| will treat that variable as quantitative. Otherwise, the variable is treated as categorical.
+
+To determine the type that Pandas inferred, simply select that variable using the methods above and look for its \verb|dtype|. A \verb|dtype| of \verb|float64| or \verb|int64| indicates that the variable is quantitative.  For example, the \verb|age| variable has a \verb|dtype| of \verb|int64|, so it is quantitative.
+
+\begin{lstlisting}[language=Python]
+df_okcupid.age
+\end{lstlisting}
+
+
+
+
+On the other hand, the \verb|religion| variable has a \verb|dtype| of \verb|object|, so \verb|pandas| will treat it as categorical.
+
+\begin{lstlisting}[language=Python]
+df_okcupid.religion
+\end{lstlisting}
+
+
+
+
+Sometimes it is necessary to convert quantitative variables to categorical variables and vice versa. This can be achieved using the \verb|.astype()| method of a \verb|Series|. For example, to convert \verb|age| to a categorical variable, we simply cast its values to strings.
+
+\begin{lstlisting}[language=Python]
+df_okcupid.age.astype(str)
+\end{lstlisting}
+
+
+
+
+To save this as a column in the \verb|DataFrame|, we assign it to a column called \verb|age_cat|. (Note that this column does not exist yet! It will be created at the time of assignment.)
+
+\begin{lstlisting}[language=Python]
+df_okcupid["age_cat"] = df_okcupid.age.astype(str)
+
+# Check that age_cat is a column in this DataFrame
+df_okcupid.head()
+\end{lstlisting}
+
+
+
+
+\subsection{Exercises}\label{1.3.4}
+
+
+
+Exercises 1-2 deal with the Titanic data set \verb|https://dlsun.github.io/pods/data/titanic.csv|
+
+
+
+1. Read in the Titanic data set. Identify each variable in the Titanic data set as either quantitative, categorical, or other. Cast all variables to the right type and assign them back to the \verb|DataFrame|.
+
+\begin{lstlisting}[language=Python]
+# YOUR CODE HERE
+\end{lstlisting}
+
+
+
+
+2. Create a \verb|DataFrame| (not a \verb|Series|) consisting of just the \verb|class| column.
+
+\begin{lstlisting}[language=Python]
+# YOUR CODE HERE
+\end{lstlisting}
+
+
+
+
