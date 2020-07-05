@@ -11,50 +11,7 @@ from mistletoe.latex_renderer import LaTeXRenderer
 
 OUTPUT_IMG_CNT = 0
 OPERATING_PATH = ""
-
-def openPynb(filename):
-    with open(filename, mode= "r", encoding= "utf-8") as f:
-        pynbRaw = json.loads(f.read())["cells"]
-    return pynbRaw
-
-def parseImage(line):
-    global OPERATING_PATH
-    resMatch = re.match(r"!\[(?P<title>[\s\S]*?)\]\((?P<link>[\s\S]*?)\)", line).groupdict()
-    if resMatch["link"][0:4] == "http":
-        urllib.request.urlretrieve(resMatch["link"], "./LatexBook/image/" + resMatch["title"] + ".png")
-    else:
-        with open(OPERATING_PATH + resMatch["link"], "rb") as f:
-            with open("./LatexBook/image/" + resMatch["link"] + ".png", "wb") as f2:
-                f2.write(f.read())
-    return "\\begin{figure}[h!]\\centering\\includegraphics[width=0.45\\paperwidth]{%s}\\end{figure}\n" \
-            % ("image/" + resMatch["title"])
-
-def parseCode(code):
-    if re.match(r"# SETUP", code):
-        return ""
-    return "\\begin{lstlisting}[language=Python]\n%s\n\\end{lstlisting}\n" % (code)
-
-def parseOutput(outputs):
-    global OUTPUT_IMG_CNT
-    latexOutput = []
-    for output in outputs:
-        if output["output_type"] == "execute_result":
-            res = "\\small\\begin{verbatim}\n" + "".join(output["data"]["text/plain"]) + "\n\\end{verbatim}\n"
-            latexOutput.append(res)
-        elif output["output_type"] == "display_data":
-            imageFileName = str(OUTPUT_IMG_CNT) + ".png"
-            OUTPUT_IMG_CNT += 1
-            if "data" in output and "image/png" in output["data"]:
-                with open("./LatexBook/image/" + imageFileName, "wb") as fh:
-                    fh.write(base64.decodebytes(bytes(output["data"]["image/png"].encode('utf-8'))))
-                res = "\\begin{figure}[h!]\\centering\\includegraphics[width=0.45\\paperwidth]{%s}\\end{figure}\n" \
-                % ("image/" + imageFileName)
-                latexOutput.append(res)
-            elif "data" in output and "text/plain" in output["data"]:
-                res = "\\small\\begin{verbatim}\n" + "".join(output["data"]["text/plain"]) + "\n\\end{verbatim}\n"
-                latexOutput.append(res)
-
-    return "\n".join(latexOutput)
+CHAPTER_TOP = True
 
 graphicsRE = r'(?P<pre>[\s\S]*)\\includegraphics{(?P<pngSrc>[\s\S]*?)}(?P<post>[\s\S]*)'
 def parseIncludeGraphics(string):
@@ -201,19 +158,66 @@ def parseFootNoteTag(string):
     return preRE + body + postRE
 
 
-def postParser(string):
-    parsed = parseIncludeGraphics(string)
-    parsed = parseSection(parsed)
-    parsed = parseSubSection(parsed)
-    parsed = parseSubSubSection(parsed)
+def postParser(string, chapterTop):
+    parsed = string
+    if chapterTop:
+        parsed = parseSection(parsed)
+        parsed = parseSubSection(parsed)
+        parsed = parseSubSubSection(parsed)
+    parsed = parseIncludeGraphics(parsed)
     parsed = parseQuotation(parsed)
     parsed = parseMathJaxTags(parsed)
     parsed = parseRemoveTag(parsed)
     parsed = parseFootNoteTag(parsed)
     return parsed
 
+def openPynb(filename):
+    with open(filename, mode= "r", encoding= "utf-8") as f:
+        pynbRaw = json.loads(f.read())["cells"]
+    return pynbRaw
+
+def parseImage(line):
+    global OPERATING_PATH
+    resMatch = re.match(r"!\[(?P<title>[\s\S]*?)\]\((?P<link>[\s\S]*?)\)", line).groupdict()
+    if resMatch["link"][0:4] == "http":
+        urllib.request.urlretrieve(resMatch["link"], "./LatexBook/image/" + resMatch["title"] + ".png")
+    else:
+        with open(OPERATING_PATH + resMatch["link"], "rb") as f:
+            with open("./LatexBook/image/" + resMatch["link"] + ".png", "wb") as f2:
+                f2.write(f.read())
+    return "\\begin{figure}[h!]\\centering\\includegraphics[width=0.45\\paperwidth]{%s}\\end{figure}\n" \
+            % ("image/" + resMatch["title"])
+
+def parseCode(code):
+    if re.match(r"# SETUP", code):
+        return ""
+    return "\\begin{lstlisting}[language=Python]\n%s\n\\end{lstlisting}\n" % (code)
+
+def parseOutput(outputs):
+    global OUTPUT_IMG_CNT
+    latexOutput = []
+    for output in outputs:
+        if output["output_type"] == "execute_result":
+            res = "\\small\\begin{verbatim}\n" + "".join(output["data"]["text/plain"]) + "\n\\end{verbatim}\n"
+            latexOutput.append(res)
+        elif output["output_type"] == "display_data":
+            imageFileName = str(OUTPUT_IMG_CNT) + ".png"
+            OUTPUT_IMG_CNT += 1
+            if "data" in output and "image/png" in output["data"]:
+                with open("./LatexBook/image/" + imageFileName, "wb") as fh:
+                    fh.write(base64.decodebytes(bytes(output["data"]["image/png"].encode('utf-8'))))
+                res = "\\begin{figure}[h!]\\centering\\includegraphics[width=0.45\\paperwidth]{%s}\\end{figure}\n" \
+                % ("image/" + imageFileName)
+                latexOutput.append(res)
+            elif "data" in output and "text/plain" in output["data"]:
+                res = "\\small\\begin{verbatim}\n" + "".join(output["data"]["text/plain"]) + "\n\\end{verbatim}\n"
+                latexOutput.append(res)
+
+    return "\n".join(latexOutput)
+
 def pynbParser(indir, outfile, indexWords):
     global OPERATING_PATH
+    global CHAPTER_TOP
     if not os.path.exists('./LatexBook/image'):
         os.makedirs('./LatexBook/image')
 
@@ -232,8 +236,8 @@ def pynbParser(indir, outfile, indexWords):
                     rendered = mistletoe.markdown("".join(cell["source"]), LaTeXRenderer)
                     latexRE = r'[\s\S]*\\begin{document}(?P<body>[\s\S]*)\\end{document}'
                     s = re.match(latexRE, rendered).groupdict()
-                    s = postParser(s["body"])
-                    for word in indexWords: 
+                    s = postParser(s["body"], CHAPTER_TOP)
+                    for word in indexWords:
                         s = s.replace(word, "\\index{" + word + "}")
                     parsedCells.append(s)
             elif cell["cell_type"] == "code":
@@ -257,6 +261,10 @@ def pynbParser(indir, outfile, indexWords):
     return "\n".join(parsedCells)
 
 def createLatexBook(configfilename):
+    chapterTopInput = input("Should \\section{...} be replaced with \\chapter{...} (T/F): ")
+    if input == "T":
+        CHAPTER_TOP = True
+
     with open(configfilename, mode= "r", encoding= "utf-8") as f:
         config = json.loads(f.read())
     bookdir = config["book_directory"]
@@ -272,7 +280,7 @@ def createLatexBook(configfilename):
     if not os.path.exists('./LatexBook'):
         os.makedirs('./LatexBook')
 
-    listDir = [x for x in os.listdir() if re.match(r"\d\d_.*", x)]
+    listDir = [x for x in os.listdir(bookdir) if re.match(r"\d\d_.*", x)]
     listDir.sort()
     outputs = []
 
@@ -280,16 +288,19 @@ def createLatexBook(configfilename):
     main = main.split("@@@SPLIT@@@")
 
     main_written = [main[0]]
-    indexWords = set(pd.read_csv(config["glossary_word_csv"])["words"])
+
+    indexWords = set()
+    if "glossary_word_csv" in config:
+        indexWords = set(pd.read_csv(config["glossary_word_csv"])["words"])
 
     print("===================================")
     print("STARTING PARSER")
     print("===================================")
     for folder in listDir:
-        output = pynbParser(folder, "out.tex", indexWords)
-        outputs.append([folder, output])
+        output = pynbParser(bookdir + "/" + folder, "out.tex", indexWords)
+        outputs.append([bookdir + "/" + folder, output])
 
-        main_written.append("\include{" + folder + "/out" + "}")
+        main_written.append("\include{" + bookdir + "/" + folder + "/out" + "}")
 
     main_written.append(main[-1])
     main_written = "\n".join(main_written)

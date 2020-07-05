@@ -1,0 +1,1017 @@
+
+
+\chapter{Categorical Data}\label{Ch.2}
+
+Recall from Chapter 1 that a \textbf{categorical variable} is a variable that can take on one of a limited set of values (which are called \textit{levels}). In this chapter, we will discuss ways to analyze categorical variables. Throughout this chapter, we use the Titanic data set as a working example. This data set contains information about all of the people who were aboard the RMS Titanic when it sank in 1912, including both passengers and crew. Let's start by reading in this data set.
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+
+data_dir = "http://dlsun.github.io/pods/data/"
+df_titanic = pd.read_csv(data_dir + "titanic.csv")
+df_titanic.head()
+\end{lstlisting}
+
+\small\begin{verbatim}
+                             name  gender   age class embarked        country  \
+0             Abbing, Mr. Anthony    male  42.0   3rd        S  United States   
+1       Abbott, Mr. Eugene Joseph    male  13.0   3rd        S  United States   
+2     Abbott, Mr. Rossmore Edward    male  16.0   3rd        S  United States   
+3  Abbott, Mrs. Rhoda Mary 'Rosa'  female  39.0   3rd        S        England   
+4     Abelseth, Miss. Karen Marie  female  16.0   3rd        S         Norway   
+
+   ticketno   fare  survived  
+0    5547.0   7.11         0  
+1    2673.0  20.05         0  
+2    2673.0  20.05         0  
+3    2673.0  20.05         1  
+4  348125.0   7.13         1  
+\end{verbatim}
+
+
+
+The categorical variables in this data set are:
+\begin{itemize}
+\item 
+\verb|gender| (male or female)
+
+\item 
+\verb|class|: what class they were in (1st, 2nd, or 3rd) or what type of crew member they were
+
+\item 
+\verb|embarked|: where they embarked (Belfast, Southampton, Cherbourg, or Queenstown)
+
+\item 
+\verb|country|: their country of origin
+
+\item 
+\verb|ticketno|: the ticket number
+
+\item 
+\verb|survived|: whether or not they survived the disaster
+
+\end{itemize}
+
+Note that \verb|age| and \verb|fare| are quantitative variables. It is tempting to consider \verb|name| a categorical variable, but it is not, since (almost) every person has a unique name. In order for a variable to be categorical, it must take on a \textit{limited} set of values, ideally with each level appearing multiple times in the data set. Otherwise, the analyses that we describe in this chapter will not be very meaningful.
+
+
+
+
+
+
+\section{Analyzing One Categorical Variable}\label{2.1}
+
+In this lesson, we focus on a single categorical variable. For a high-level summary of a categorical variable, we can use the \verb|.describe()| command. Note that the behavior of \verb|.describe()| will change, depending on whether \verb|pandas| thinks that the variable is quantitative or categorical, which is why it is important to cast categorical variables to the right type, as we discussed in the previous chapter.
+
+\begin{lstlisting}[language=Python]
+df_titanic["class"].describe()
+\end{lstlisting}
+
+
+
+
+To completely summarize a single categorical variable, we report the number of times each level appeared, or its \textbf{frequency}.
+
+\begin{lstlisting}[language=Python]
+class_counts = df_titanic["class"].value_counts()
+class_counts
+\end{lstlisting}
+
+
+
+
+Notice that the levels are sorted in decreasing order of frequency by default. We can also report the levels in the order they appear in the data set...
+
+\begin{lstlisting}[language=Python]
+df_titanic["class"].value_counts(sort=False)
+\end{lstlisting}
+
+
+
+
+...or in alphabetical order, by sorting the index:
+
+\begin{lstlisting}[language=Python]
+class_counts.sort_index()
+\end{lstlisting}
+
+
+
+
+Note that this produces a \textit{new} \verb|Series| with the index sorted. It does not sort the original \verb|Series| \verb|class_counts|. To sort the original series, we need to specify that the sorting should be done in place, just like we did for \verb|.set_index()| in Chapter 1.
+
+\begin{lstlisting}[language=Python]
+class_counts.sort_index(inplace=True)
+class_counts
+\end{lstlisting}
+
+
+
+
+Any other order would require selecting the levels manually, in the desired order.
+
+\begin{lstlisting}[language=Python]
+class_counts.loc[
+    ["1st", "2nd", "3rd",
+     "deck crew", "engineering crew", "victualling crew",
+     "restaurant staff"]
+]
+\end{lstlisting}
+
+
+
+
+This information can be visualized using a \textbf{bar chart}.
+
+\begin{lstlisting}[language=Python]
+class_counts.plot.bar()
+\end{lstlisting}
+
+
+
+
+Instead of reporting counts, we can also report proportions or probabilities, or the \textbf{relative frequencies}. We can calculate the relative frequencies by specifying \verb|normalize=True| in \verb|.value_counts()|.
+
+\begin{lstlisting}[language=Python]
+class_probs = df_titanic["class"].value_counts(normalize=True)
+class_probs.sort_index()
+\end{lstlisting}
+
+
+
+
+This is equivalent to taking the counts and dividing by their sum.
+
+\begin{lstlisting}[language=Python]
+class_counts / class_counts.sum()
+\end{lstlisting}
+
+
+
+
+Notice that the relative frequencies add up to 1.0, by construction. We can report these relative frequencies using probability notation. For example:
+
+$$ P(\text{1st class}) = 0.146806. $$
+
+The complete collection of probabilities of all levels of a variable is called the \textbf{distribution} of that variable. So the code above calculates the distribution of "class" on the Titanic.
+
+
+
+The bar chart for relative frequencies (i.e., probabilities) looks qualitatively the same as the bar chart for frequencies (i.e., counts). The only difference is that the scale on the $y$-axis is different.
+
+\begin{lstlisting}[language=Python]
+class_probs.sort_index().plot.bar()
+\end{lstlisting}
+
+
+
+
+In the next lesson, we will see why it is often more useful to plot the relative frequencies (i.e., probabilities) rather than the frequencies (i.e., counts).
+
+
+
+\subsection{Transforming Categorical Variables}\label{2.1.1}
+
+A categorical variable can be transformed by mapping its levels to new levels. For example, we may only be interested in whether a person on the titanic was a passenger or a crew member. The variable \verb|class| is too detailed. We can create a new variable, \verb|type|, that is derived from the existing variable \verb|class|. Observations with a \verb|class| of "1st", "2nd", or "3rd" get a value of "passenger", while observations with a \verb|class| of "deck crew", "engineering crew", or "deck crew" get a value of "crew".
+
+\begin{lstlisting}[language=Python]
+df_titanic["type"] = df_titanic["class"].map({
+    "1st": "passenger",
+    "2nd": "passenger",
+    "3rd": "passenger",
+    "victualling crew": "crew",
+    "engineering crew": "crew",
+    "deck crew": "crew"
+})
+
+df_titanic
+\end{lstlisting}
+
+
+
+
+Upon closer inspection of this \verb|DataFrame|, we see that we accidentally left out the level "restaurant staff" in the input to \verb|.map()|. Any levels that are unspecified will be mapped to the missing value \verb|NaN|.
+
+This suggests a more concise way to define the new variable \verb|type|. We can specify only the levels for passengers in the mapping and then fill in the missing values afterwards.
+
+\begin{lstlisting}[language=Python]
+df_titanic["type"] = df_titanic["class"].map({
+    "1st": "passenger",
+    "2nd": "passenger",
+    "3rd": "passenger"
+})
+
+# Replace all missing values by "crew"
+df_titanic["type"].fillna("crew", inplace=True)
+
+df_titanic
+\end{lstlisting}
+
+
+
+
+For more complex mappings, the \verb|.map()| method also accepts a function. So the above
+
+\begin{lstlisting}[language=Python]
+def class_to_type(c):
+  if c in ["1st", "2nd", "3rd"]:
+    return "passenger"
+  else:
+    return "crew"
+
+df_titanic["class"].map(class_to_type)
+\end{lstlisting}
+
+
+
+
+We can apply the techniques we learned above to calculate the \textit{distribution} of this new variable, which only has two levels.
+
+\begin{lstlisting}[language=Python]
+df_titanic["type"].value_counts(normalize=True)
+\end{lstlisting}
+
+
+
+
+\subsection{Conditional Probabilities}\label{2.1.2}
+
+What fraction of males were crew members? To answer questions like this, we have to filter the \verb|DataFrame| to include only males.
+
+The standard way to filter a \verb|DataFrame| is to use a \textbf{boolean mask}. A boolean mask is simply a \verb|Series| of booleans whose index matches the index of the \verb|DataFrame|.
+
+The easiest way to create a boolean mask is to use one of the standard comparison operators \verb|==|, \verb|<|, \verb|>|, and \verb|!=| on an existing column in the \verb|DataFrame|. For example, the following code produces a boolean mask that is equal to \verb|True| for the males on the Titanic and \verb|False| otherwise.
+
+\begin{lstlisting}[language=Python]
+df_titanic["gender"] == "male"
+\end{lstlisting}
+
+
+
+
+Notice the subtle way the equality operator \verb|==| is being used here! We are comparing an array with a string, i.e.,
+
+\begin{align}
+& \begin{bmatrix} \text{"male"} \\ \text{"male"} \\ \text{"male"} \\ \text{"female"} \\ \vdots \\ \text{"male"} \end{bmatrix} & \text{with} & & \text{"male"}.
+\label{broadcast1}\end{align}
+
+In most programming languages, this comparison would make no sense. An array of strings is obviously not equal to a string $\eqref{broadcast1}$. However, \verb|pandas| automatically applies the equality operator to \textit{each} element of the array. As a result, we get an entire array (i.e., a \verb|Series|) of booleans.
+
+\begin{align}
+\begin{bmatrix} \text{"male"} \\ \text{"male"} \\ \text{"male"} \\ \text{"female"} \\ \vdots \\ \text{"male"} \end{bmatrix} &== \text{"male"} &\Longrightarrow & &  \begin{bmatrix} \text{True} \\ \text{True} \\ \text{True} \\ \text{False} \\ \vdots \\ \text{True} \end{bmatrix}.
+\label{broadcast2}\end{align}
+
+When an operation is applied to each element of an array, it is said to be \textbf{broadcast} over that array $\eqref{broadcast2}$.
+
+Now, we can use the boolean mask as a filter on the \verb|DataFrame| to extract the rows where the mask equals \verb|True|.
+
+\begin{lstlisting}[language=Python]
+df_male = df_titanic[df_titanic["gender"] == "male"]
+df_male
+\end{lstlisting}
+
+
+
+
+Note that every person in this new \verb|DataFrame| is male. If you inspect the index, you will see that rows 4 and 5 are missing. That is because those passengers were female.
+
+
+
+Finally, we can apply the methods we've learned in this lesson to \verb|df_male| to answer the original question: "What fraction of males were crew members?"
+
+\begin{lstlisting}[language=Python]
+df_male["type"].value_counts(normalize=True)
+\end{lstlisting}
+
+
+
+
+It appears that about \verb|50.4657%| of the males were crew members. We can notate this using \textit{conditional probability} notation:
+
+$$ P(\text{crew} | \text{male}) = 0.504657. $$
+
+The bar $|$ is read as "given". The information after the bar is the given information. In this case, we were interested in the probability a person was a crew member, "given" they were male. That is, after restricting to the male passengers (i.e., using a boolean mask as a filter), we want to know the relative frequency of crew members.
+
+
+
+We can also filter on multiple criteria. For example, if we want to know the fraction of male \textit{survivors} who were crew members, we need to combine two boolean masks, one based on the column \verb|gender| and another based on the column \verb|survived|. The two masks can be combined using the logical operator \verb|\&|.
+
+\begin{lstlisting}[language=Python]
+(df_titanic["gender"] == "male") & (df_titanic["survived"] == 1)
+\end{lstlisting}
+
+
+
+
+Notice that the logical operator was \textit{broadcast} (that word again!) over the elements of the two \verb|Series|. In other words, the logical operator was applied to each element, producing a \verb|Series| of booleans.
+
+Now we can use this new boolean mask to filter the \verb|DataFrame|, just as we did before.
+
+\begin{lstlisting}[language=Python]
+df_male_survivors = df_titanic[(df_titanic["gender"] == "male") & (df_titanic["survived"] == 1)]
+df_male_survivors
+\end{lstlisting}
+
+
+
+
+Besides $\verb|&|$, there are two other logical operators that can be used to modify and combine boolean masks.
+\begin{itemize}
+\item 
+$\verb|&|$ means "and"
+
+\item 
+$\verb|||$ means "or"
+
+\item 
+$\verb|~|$ means "not"
+
+\end{itemize}
+
+Like $\verb|&|$, the operators $\verb|||$ and $\verb|~|$ are broadcast over the boolean masks.
+
+
+
+\subsection{Exercises}\label{2.1.3}
+
+
+
+\textit{Exercises 1-2 ask you to continue working with the Titanic data set explored in this lesson.}
+
+
+
+1. What proportion of crew members were male? Express your answer using probability notation. How does this proportion differ from the proportion that was calculated in the lesson?
+
+
+
+2. What is the distribution of gender among passengers on the Titanic? What is the distribution of gender among passengers on the Titanic who survived? Express your answers using probability notation.
+
+
+
+\textit{Exercises 3-5 deal with the OKCupid data set, which consists of user profiles in the San Francisco Bay Area on the dating website OKCupid. This data set is available at the URL https://dlsun.github.io/pods/data/okcupid.csv.}
+
+
+
+3. Make a visualization of the distribution of drinking status.
+
+
+
+4. Create a new variable that indicates whether the user has, likes, or dislikes cats. Visualize the distribution of this variable.
+
+
+
+5. If you were a heterosexual female interested in dating a non-smoker, how many options would you have in this data set?
+
+
+
+
+
+
+\section{Two-Way Tables and Two Categorical Variables}\label{2.2}
+
+
+
+Data science is all about relationships between variables. How do we summarize and visualize the relationship between two categorical variables?
+
+For example, what can we say about the relationship between gender and survival on the Titanic?
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+data_dir = "http://dlsun.github.io/pods/data/"
+df_titanic = pd.read_csv(data_dir + "titanic.csv")
+\end{lstlisting}
+
+
+
+
+We can summarize each variable individually like we did in the previous lesson.
+
+\begin{lstlisting}[language=Python]
+df_titanic["gender"].value_counts()
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=Python]
+df_titanic["survived"].value_counts()
+\end{lstlisting}
+
+
+
+
+But this does not tell us how gender interacts with survival. To do that, we need to produce a \textit{cross-tabulation}, or "cross-tab" for short. (Statisticians tend to call this a \textit{contigency table} or a \textit{two-way table}.)
+
+\begin{lstlisting}[language=Python]
+pd.crosstab(df_titanic["survived"], df_titanic["gender"])
+\end{lstlisting}
+
+
+
+
+A cross-tabulation of two categorical variables is a two-dimensional array, with the levels of one variable along the rows and the levels of the other variable along the columns. Each cell in this array contains the number of observations that had a particular combination of levels. So in the Titanic data set, there were 359 females who survived and 1366 males who died. From the cross-tabulation, we can see that there were more females who survived than not, while there were more males who died than not. Clearly, gender had a strong influence on survival because of the Titanic's policy of "women and children first".
+
+To get probabilities instead of counts, we specify \verb|normalize=True|.
+
+\begin{lstlisting}[language=Python]
+joint_survived_gender = pd.crosstab(df_titanic["survived"], df_titanic["gender"], 
+                                    normalize=True)
+joint_survived_gender
+\end{lstlisting}
+
+
+
+
+Notice that the four probabilities in this table add up to 1.0. Each of these probabilities is called a joint probability and can be notated, for example, as
+
+$$ P(\text{female}, \text{died}) = 0.058903.$$
+
+Collectively, these probabilities make up the \textit{joint distribution} of the variables \textbf{survived} and \textbf{gender}.
+
+
+
+\subsection{Marginal Distributions}\label{2.2.1}
+
+Is it possible to recover the distribution of \textbf{gender} alone from the joint distribution of \textbf{survived} and \textbf{gender}?
+
+
+
+Yes! We simply sum the probabilities for each \textbf{gender} over all the possible levels of \textbf{survived}.
+
+\begin{align}
+P(\text{female}) = P(\text{female}, \text{died}) + P(\text{female}, \text{survived}) &= 0.058903 + 0.162664 = 0.221567 \\
+P(\text{male}) = P(\text{male}, \text{died}) + P(\text{male}, \text{survived}) &= 0.618940 + 0.159493 = 0.778433\end{align}
+
+
+
+In code, this can be achieved by summing the \verb|DataFrame| \textit{over} one of the dimensions. We can specify which dimension to sum over, using the \verb|axis=| argument to \verb|.sum()|.
+\begin{itemize}
+\item 
+\verb|axis=0| refers to the rows. In the current example, \textbf{survived} is the variable along this axis.
+
+\item 
+\verb|axis=1| refers to the columns. In the current example, \textbf{gender} is the variable along this axis.
+
+\end{itemize}
+
+Since we want to sum \textit{over} the \textbf{survived} variable, we specify \verb|.sum(axis=0)|.
+
+\begin{lstlisting}[language=Python]
+gender = joint_survived_gender.sum(axis=0)
+gender
+\end{lstlisting}
+
+
+
+
+When calculated from a joint distribution, the distribution of one variable is called a \textit{marginal distribution}. So the above is the marginal distribution of \textbf{gender}.
+
+The name "marginal distribution" comes from the fact that it is customary to write these totals in the \textit{margins} of the table. In fact \verb|pd.crosstab()| has an argument \verb|margins=| that automatically adds these margins to the cross-tabulation.
+
+\begin{lstlisting}[language=Python]
+pd.crosstab(df_titanic["survived"], df_titanic["gender"], 
+            normalize=True, margins=True)
+\end{lstlisting}
+
+
+
+
+While the margins are useful for display purposes, they actually make computations more difficult, since it is easy to mix up which numbers correspond to joint probabilities and which ones correspond to marginal probabilities.
+
+Likewise, to obtain the marginal distribution of \textbf{survived}, we sum over the possible levels of \textbf{gender} (which is the variable along \verb|axis=1|).
+
+\begin{lstlisting}[language=Python]
+survived = joint_survived_gender.sum(axis=1)
+survived
+\end{lstlisting}
+
+
+
+
+We can check this answer by calculating the distribution of \textbf{survived} directly from the original data, using the techniques from the previous lesson.
+
+\begin{lstlisting}[language=Python]
+df_titanic["survived"].value_counts(normalize=True)
+\end{lstlisting}
+
+
+
+
+\subsection{Conditional Distributions}\label{2.2.2}
+
+Let's take another look at the joint distribution of \textbf{survived} and \textbf{gender}.
+
+\begin{lstlisting}[language=Python]
+joint_survived_gender
+\end{lstlisting}
+
+
+
+
+From the joint distribution, it is tempting to conclude that females and males did not differ too much in their survival rates, since
+
+$$ P(\text{female}, \text{survived}) = 0.162664 $$
+
+is not too different from
+
+$$ P(\text{male}, \text{survived}) = 0.159493. $$
+
+This is because there were 359 women and 352 men who survived, out of 2207 passengers.
+
+But this is the wrong comparison. The joint probabilities are affected by the baseline gender probabilities, and over three-quarters of the people aboard the Titanic were men. $P(\text{male}, \text{survived})$ and $ P(\text{female}, \text{survived})$ should not even be close if men were just as likely to survive as women, simply because of the sheer number of men aboard.
+
+
+
+A better comparison is between the conditional probabilities. We ought to compare
+
+$$ P(\text{survived} | \text{female}) $$
+
+to
+
+$$ P(\text{survived} | \text{male}). $$
+
+To calculate each conditional probability, we simply divide the joint probability by the marginal probability. That is,
+
+\begin{align}
+P(\text{survived} | \text{female}) = \frac{P(\text{female}, \text{survived})}{P(\text{female})} &= \frac{0.162664}{0.221568} = .7341 \\
+P(\text{survived} | \text{male}) = \frac{P(\text{male}, \text{survived})}{P(\text{male})} &= \frac{0.159493}{0.778432} = .2049\end{align}
+
+The conditional probabilities expose the stark difference in survival rates. One way to think about conditional probabilities is that they \textit{adjust} for the baseline gender probabilities. By dividing by $P(\text{male})$ and $P(\text{female})$, we adjust for the fact that there were more men and fewer women on the Titanic, thus enabling an apples-to-apples comparison.
+
+
+
+In code, this can be achieved by dividing the joint distribution by the marginal distribution (of \textbf{gender}). However, we have to be careful:
+\begin{itemize}
+\item 
+The joint distribution is a two-dimensional array. It is stored as a \verb|DataFrame|.
+
+\item 
+The marginal distribution (of \textbf{gender}) is a one-dimensional array. It is stored as a \verb|Series|.
+
+\end{itemize}
+
+How is it possible to divide a two-dimensional object by a one-dimensional object? Only if we \textit{broadcast} the one-dimensional object over the other dimension. A toy example is illustrated below.
+
+\begin{align}
+\begin{bmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix} \Big/ \begin{bmatrix} 7 \\ 8 \end{bmatrix} &= \begin{bmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix}  \Big/ \begin{bmatrix} 7 & 8 \\ 7 & 8 \\ 7 & 8 \end{bmatrix} \\
+&= \begin{bmatrix} 1/7 & 2/8 \\ 3/7 & 4/8 \\ 5/7 & 6/8 \end{bmatrix}\end{align}
+
+To do this in \verb|pandas|, we use the \verb|.divide()| method, specifying the dimension on which to align the \verb|Series| with the \verb|DataFrame|. Since \textbf{gender} is on \verb|axis=1| of \verb|joint_survived_gender|, we align the \verb|DataFrame| and \verb|Series| along \verb|axis=1|.
+
+\begin{lstlisting}[language=Python]
+cond_survived_gender = joint_survived_gender.divide(gender, axis=1)
+# In this case, joint_survived_gender / gender would also haved worked,
+# but better to play it safe and be explicit about the axis.
+
+cond_survived_gender 
+\end{lstlisting}
+
+
+
+
+Every probability in this table represents a conditional probability of gender given survival status. So from the table, we can read that
+
+$$ P(\text{survived} | \text{female}) = 0.734151. $$
+
+Notice that each row sums to $1.0$---as it must, since given the information that a person was female, there are only two possibilities: she either survived or died.
+
+In other words, we have a distribution of \textbf{survived} for each level of \textbf{gender}. We might wish to compare these two distributions. When we call \verb|.plot.bar()| on the \verb|DataFrame|, it will plot the values in each column as a set of bars with its own color.
+
+\begin{lstlisting}[language=Python]
+cond_survived_gender.plot.bar()
+\end{lstlisting}
+
+
+
+
+A different way to visualize a conditional distribution is to use a stacked bar graph. Here, we want one bar for females and another for males, each one divided in proportion to the survival rates for that gender. First, let's take a look at the desired graph.
+
+\begin{lstlisting}[language=Python]
+cond_survived_gender.T.plot.bar(stacked=True)
+\end{lstlisting}
+
+
+
+
+Now, let's unpack the code that generated this graphic. Recall that \verb|.plot.bar()| plots each column of a \verb|DataFrame| in a different color. Here we want different colors for each level of \textbf{survived}, so we need to swap the rows and columns of \verb|cond_survived_gender|. In other words, we need the \textit{transpose} of the \verb|DataFrame|, which is accomplished using \verb|.T|.
+
+\begin{lstlisting}[language=Python]
+cond_survived_gender.T
+\end{lstlisting}
+
+
+
+
+When we call \verb|.plot.bar()| on this transposed \verb|DataFrame|, with \verb|stacked=True|, we obtain the stacked bar graph above.
+
+
+
+\subsection{Exercises}\label{2.2.3}
+
+
+
+Exercises 1-4 ask you to continue working with the Titanic data set explored in this lesson.
+
+
+
+1. Filter the data to include passengers only. Calculate the joint distribution between a passenger's class and where they embarked.
+
+
+
+2. Using the joint distribution that you calculated in Exercise 1, calculate the following:
+\begin{itemize}
+\item 
+the conditional distribution of their class given where they embarked
+
+\item 
+the conditional distribution of where they embarked given their class
+
+\end{itemize}
+
+Use the conditional distributions that you calculate to answer the following questions:
+\begin{itemize}
+\item 
+What proportion of 3rd class passengers embarked at Southampton?
+
+\item 
+What proportion of Southampton passengers were in 3rd class?
+
+\end{itemize}
+
+
+
+3. Make a visualization showing the distribution of a passenger's class, given where they embarked.
+
+
+
+4. Compare the survival rates of crew members versus passengers. Which group appears to survive at higher rates?
+
+(\textit{Hint:} You will have to transform the \textbf{class} variable to a variable that indicates whether a person was a passenger or a crew member. Refer to the previous lesson.)
+
+
+
+Exercises 5-6 ask you to work with the Florida Death Penalty data set, which is available at  \verb|https://dlsun.github.io/pods/data/death_penalty.csv|. This data set contains information about the races of the defendant and the victim, as well as whether a death penalty verdict was rendered, in 674 homicide trials in Florida between 1976-1987.
+
+
+
+5. Use the joint distribution to summarize the relationship between the defendant's and the victim's races in Florida homicides.
+
+
+
+6. Does there appear to be a relationship between death penalty verdicts and the defendant's race? If so, in what direction?
+
+
+
+
+
+
+\section{Multi-Way Tables and Simpson's Paradox}\label{2.3}
+
+
+
+In the previous lesson, we summarized two categorical variables by cross-tabulating their frequencies.
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+data_dir = "http://dlsun.github.io/pods/data/"
+df_titanic = pd.read_csv(data_dir + "titanic.csv")
+
+def class_to_type(c):
+  if c in ["1st", "2nd", "3rd"]:
+    return "passenger"
+  else:
+    return "crew"
+df_titanic["type"] = df_titanic["class"].map(class_to_type)
+
+joint_type_survived = pd.crosstab(
+    df_titanic["type"],
+    df_titanic["survived"],
+    normalize=True
+)
+joint_type_survived
+\end{lstlisting}
+
+\small\begin{verbatim}
+survived          0         1
+type                         
+crew       0.307657  0.095605
+passenger  0.370186  0.226552
+\end{verbatim}
+
+
+
+Each number in this table represents a joint probability. For example:
+$$ P(\text{crew}, \text{survived}) = 0.095605. $$
+
+We might want to know whether crew members or passengers survived at higher rates. To do this, we have to compare the conditional probabilities
+\begin{align}
+P(\text{survived} | \text{crew}) & & \text{vs.} & & P(\text{survived} | \text{passenger}).\end{align}
+
+In the last lesson, we learned to calculate conditional distributions using broadcasting.
+
+\begin{lstlisting}[language=Python]
+survived_given_type = joint_type_survived.divide(
+    joint_type_survived.sum(axis=1),
+    axis=0
+)
+survived_given_type
+\end{lstlisting}
+
+\small\begin{verbatim}
+survived          0         1
+type                         
+crew       0.762921  0.237079
+passenger  0.620349  0.379651
+\end{verbatim}
+
+
+
+From the table, it is apparent that passengers survived at much higher rates than crew members:
+$$ P(\text{survived}|\text{crew}) = 0.237079 < 0.379651 = P(\text{survived}|\text{passenger}). $$
+
+
+
+\subsection{Communication Corner: Reporting Differences in Probabilities}\label{2.3.1}
+
+
+
+How do we report the difference between the two probabilities $23.71\%$ and $37.97\%$ above? There are a number of ways:
+\begin{enumerate}
+\item 
+As an \textit{additive change}: "Passengers were
+$$ 37.97\% - 23.71\% = 14.26 \text{ percentage points} $$
+more likely to survive than crew members."
+
+\item 
+As a \textit{relative change} (or \textit{relative risk}): "Passengers were
+$$ 37.97\% \big/ 23.71\% = 1.60 \text{ times} $$
+as likely to survive as crew members."
+
+\item 
+We can translate relative changes to \textit{percent changes} by subtracting $1$ and multiplying by $100\%$. So we can rephrase the above as: "Passengers were
+$$ 100\% \times (1.60 - 1.00) = 60\% $$
+more likely to survive than crew members."
+
+\item 
+As an \textit{odds ratio}: "The odds of a passenger surviving was
+$$ \frac{37.97\% \big/ (100\% - 37.97\%)}{23.71\% \big/ (100\% - 23.71\%)} = 1.97 \text{ times} $$
+greater than the odds of a crew member surviving."
+
+\end{enumerate}
+
+Note that additive changes and percent changes should be compared to a baseline of 0.0 (and can be negative), while relative changes and odds ratios should be compared to a baseline of 1.0 (and cannot be negative).
+
+Watch out: it is incorrect to say that passengers are $14.26\%$ more likely to survive than crew members, since the percent change is $60\%$. An additive change should always be reported in units of "percentage points".
+
+
+
+\subsection{Controlling for a Variable}\label{2.3.2}
+
+But is this the whole story? We know that survival rates for males and females were very different. Will the trend between the survival rates for crew and passengers still hold after we \textit{control} for \textbf{gender}?
+
+To do this, let's determine the joint distribution of these two variables and a third variable, \textbf{gender}. In principle, the frequencies could be represented using a three-dimensional table, but it is difficult to visualize more than two dimensions on paper or on a screen. So we put two of the variables along one dimension and one variable along the other, creating a \textit{three-way table}.
+
+\begin{lstlisting}[language=Python]
+joint_gender_type_survived = pd.crosstab(
+    [df_titanic["gender"], df_titanic["type"]],
+    df_titanic["survived"],
+    normalize=True
+)
+joint_gender_type_survived
+\end{lstlisting}
+
+\small\begin{verbatim}
+survived                 0         1
+gender type                         
+female crew       0.001359  0.009062
+       passenger  0.057544  0.153602
+male   crew       0.306298  0.086543
+       passenger  0.312642  0.072950
+\end{verbatim}
+
+
+
+Of course, we would have chosen any two of the variables to place along the rows, or had the two variables along the columns instead of the rows. The particular representation above was chosen because it makes it easy to survival rates for each gender and type, i.e.,
+$$ P(\text{survived} | \textbf{gender}, \textbf{type}), $$
+where \textbf{gender} is either "male" or "female" and \textbf{type} is either "crew" or "passenger". Recall that the conditional probability is calculated as
+$$ P(\text{survived} | \textbf{gender}, \textbf{type}) = \frac{P(\text{survived}, \textbf{gender}, \textbf{type})}{P(\textbf{gender}, \textbf{type})}. $$
+The numerator is the joint distribution above. The denominator can be calculated by summing over the possible values of \textbf{survived}---in other words, across each row, over the columns.
+
+\begin{lstlisting}[language=Python]
+joint_gender_type = joint_gender_type_survived.sum(axis=1)
+joint_gender_type
+\end{lstlisting}
+
+\small\begin{verbatim}
+gender  type     
+female  crew         0.010421
+        passenger    0.211146
+male    crew         0.392841
+        passenger    0.385591
+dtype: float64
+\end{verbatim}
+
+
+
+To obtain the conditional probabilities, we simply divide the joint distribution by the marginal.
+
+\begin{lstlisting}[language=Python]
+survived_given_gender_type = joint_gender_type_survived.divide(
+    joint_gender_type,
+    axis=0
+)
+survived_given_gender_type
+\end{lstlisting}
+
+\small\begin{verbatim}
+survived                 0         1
+gender type                         
+female crew       0.130435  0.869565
+       passenger  0.272532  0.727468
+male   crew       0.779700  0.220300
+       passenger  0.810811  0.189189
+\end{verbatim}
+
+
+
+Now, let's compare the survival rates of passengers and crew members for females and males separately.
+\begin{itemize}
+\item 
+For females, crew members survived at a higher rate:
+$$ P(\text{survived} | \text{female}, \text{crew}) = 0.869565 > 0.727468 = P(\text{survived} | \text{female}, \text{passenger}) $$
+
+\item 
+For males, crew members survived at a higher rate:
+$$ P(\text{survived} | \text{male}, \text{crew}) = 0.220300 > 0.189189 = P(\text{survived} | \text{male}, \text{passenger}) $$
+
+\end{itemize}
+
+But remember, we found earlier that passengers survived at a higher rate overall:
+$$ P(\text{survived} | \text{crew}) < P(\text{survived} | \text{passenger}). $$
+
+How is it possible that both male and female crew members survived at a higher rate, yet crew members survived at a lower rate overall? This surprising phenomenon is known as \textit{Simpson's paradox}.
+
+
+
+\subsection{Simpson's Paradox}\label{2.3.3}
+
+Simpson's paradox is a phenomenon where a trend disappears or reverses when the data is aggregated. In the Titanic data set, both male and female crew members survived at higher rates, but when we aggregated over gender, the trend reversed.
+
+In order to investigate Simpson's paradox, we first reorganize the probabilities. First, we keep only the survival rate, dropping the death rate (since it is redundant; it is just one minus the survival rate).
+
+\begin{lstlisting}[language=Python]
+survived_given_gender_type[1]
+\end{lstlisting}
+
+\small\begin{verbatim}
+gender  type     
+female  crew         0.869565
+        passenger    0.727468
+male    crew         0.220300
+        passenger    0.189189
+Name: 1, dtype: float64
+\end{verbatim}
+
+
+
+Next, we rearrange these probabilities into a two-way table, with gender along one dimension and type along the other. This can be achieved in code by "unstacking" a level of the index. (There are two "levels": \textbf{gender} and \textbf{type}.)
+
+\begin{lstlisting}[language=Python]
+survival_rates_by_gender_type = (survived_given_gender_type[1].
+                                 unstack(level="type"))
+survival_rates_by_gender_type
+\end{lstlisting}
+
+\small\begin{verbatim}
+type        crew  passenger
+gender                     
+female  0.869565   0.727468
+male    0.220300   0.189189
+\end{verbatim}
+
+
+
+Caution: the probabilities in this table do not represent a distribution. They do not add up to 1.0. These probabilities originally came from the conditional distribution of \textbf{survived} given \textbf{gender} and \textbf{type}, but we dropped the death rates from the data.
+
+Finally, we append the overall survival rates (which we calculated at the beginning of this lesson) to the last row of this \verb|DataFrame|.
+
+\begin{lstlisting}[language=Python]
+survival_rates_by_gender_type.append(survived_given_type[1])
+\end{lstlisting}
+
+\small\begin{verbatim}
+type        crew  passenger
+gender                     
+female  0.869565   0.727468
+male    0.220300   0.189189
+1       0.237079   0.379651
+\end{verbatim}
+
+
+
+The overall survival rates are weighted averages of the survival rates for each gender. If we look at the survival rates for crew members:
+\begin{itemize}
+\item 
+The survival rate for female crew is 87.0%.
+
+\item 
+The survival rate for male crew is 22.0%.
+
+\item 
+The overall survival rate for all crew is 23.7%, which is between the gender-specific survival rates, but much closer to the survival rate for male crew.
+
+\end{itemize}
+
+Likewise, if we look at the survival rates for passengers:
+\begin{itemize}
+\item 
+The survival rate for female crew is 72.7%.
+
+\item 
+The survival rate for male crew is 18.9%.
+
+\item 
+The overall survival rate for all crew is 38.0%, which is closer to the middle of the gender-specific survival rates.
+
+\end{itemize}
+
+Why would the survival rate for crew members be so close to the survival rate for male crew? To answer this question, let's examine the weights that go into this weighted average.
+
+
+
+In mathematical notation, the overall survival rate can be decomposed as:
+$$ \underbrace{P(\text{survived} | \textbf{type})}_{\text{overall survival rate}} = \sum_{\textbf{gender}} \underbrace{P(\textbf{gender} | \textbf{type})}_{\text{weight}} \underbrace{P(\text{survived} | \textbf{gender}, \textbf{type})}_{\text{gender-specific survival rate}}. $$
+So we see that the weights are $P(\textbf{gender} | \textbf{type})$.
+
+First, we calculate this conditional distribution from the joint distribution of \textbf{gender} and \textbf{type}.
+
+\begin{lstlisting}[language=Python]
+joint_gender_type = pd.crosstab(
+    df_titanic["gender"],
+    df_titanic["type"],
+    normalize=True
+)
+
+gender_given_type = joint_gender_type.divide(
+    joint_gender_type.sum(axis=0),
+    axis=1
+)
+gender_given_type
+\end{lstlisting}
+
+\small\begin{verbatim}
+type        crew  passenger
+gender                     
+female  0.025843   0.353834
+male    0.974157   0.646166
+\end{verbatim}
+
+
+
+Notice that 97.4% of crew members were male! So the lower male survival rate is going to dominate the weighted average when we calculate the overall survival rate for crew members. On the other hand, the gender ratio for passengers was more balanced, so their overall survival rate will end up being closer to the middle of the male and female survival rates.
+
+Now, we calculate the weighted average, using the conditional distribution of gender as "weights" that we multiply by the survival rates. Then, we sum over the genders to get the weighted averages---i.e., the overall survival rates.
+
+\begin{lstlisting}[language=Python]
+(gender_given_type * survival_rates_by_gender_type).sum(axis=0)
+\end{lstlisting}
+
+\small\begin{verbatim}
+type
+crew         0.237079
+passenger    0.379651
+dtype: float64
+\end{verbatim}
+
+
+
+Check that these match the overall survival rates that we calculated above.
+
+So the secret of Simpson's Paradox lies in two facts:
+\begin{enumerate}
+\item 
+Survival rates were generally much lower for men than for women.
+
+\item 
+Because crew members were predominantly male, their survival rate was weighted towards the lower male survival rate, that their overall survival rate ended up being lower than the survival rate for passengers.
+
+\end{enumerate}
+
+Simpson's Paradox means that we have to be careful when comparing proportions from a two-way table, such as survival rates for crew and passengers. When we control for a third variable, such as \textbf{gender}, the direction of the effect could change!
+
+
+
+\subsection{Exercises}\label{2.3.4}
+
+
+
+1. Calculate the \textit{percent change} in survival rates between passengers and crew members, controlling for where they embarked. Does there appear to be a Simpson's paradox effect here?
+
+
+
+Exercise 2 asks you to work with the Florida Death Penalty data set, which is available at  \verb|https://dlsun.github.io/pods/data/death_penalty.csv|. This data set contains information about the races of the defendant and the victim, as well as whether a death penalty verdict was rendered, in 674 homicide trials in Florida between 1976-1987.
+
+
+
+2. Calculate the \textit{relative risk} of a death penalty verdict for black defendants (relative to white defendants), adjusting for the race of the victim. How does this compare to what you found at the end of the last chapter? Can you explain intuitively what is going on?
+
+
+
