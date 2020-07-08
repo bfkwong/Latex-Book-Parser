@@ -1,5 +1,8 @@
 # Markdown Parser Documentation 
 
+**PIP Dependencies**
+- Mistletoe
+
 ## I. BOOK LAYOUT 
 
 ### Chapter Layout
