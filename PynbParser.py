@@ -71,7 +71,8 @@ def postParserHelper(string):
 
     mathJaxAlignMatch = re.match(mathJaxAlignRE, string)
     if mathJaxAlignMatch:
-        body = "\\begin{align}" + mathJaxAlignMatch["title"] + "\\end{align}"
+        bodyRet = postParser(mathJaxAlignMatch["title"])
+        body = "\\begin{align}" + bodyRet + "\\end{align}"
         return body, mathJaxAlignMatch["post"]
 
     tagMatch = re.match(tagRE, string)
