@@ -1,7 +1,9 @@
 # Markdown Parser Documentation 
 
-**PIP Dependencies**
-- Mistletoe
+**Python Dependencies**
+- [Mistletoe](https://github.com/miyuchina/mistletoe)
+- [Requests](https://requests.readthedocs.io/en/master/)
+- [Pandas](https://pandas.pydata.org/)
 
 ## I. BOOK LAYOUT 
 
